@@ -30,6 +30,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 # Prophet
 from prophet import Prophet
 from deap import base, creator, tools, algorithms
+
 warnings.filterwarnings('ignore')
 
 # Set matplotlib backend for interactive plots
@@ -93,92 +94,51 @@ print("=" * 80)
 # 1. DATA RETRIEVAL
 # ============================================================================
 
-def get_us_unemployment():
-    """
-    Retrieve US unemployment rate from BLS API
-    Series: LNS14000000 (Unemployment Rate)
-    """
-    print("\n1. RETRIEVING DATA FROM BLS API")
-    print("-" * 80)
-    
+try: 
+    import requests
+    import pandas as pd
+    mykey = 'ff7095746d954b8a884141069e4216e9'
+
     url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-    
-    mykey = ""  # Optional: Add your BLS API key here
-    
+
     payload = {
-        "seriesid": ["LNS14000000"],
+        "seriesid": ["LNS14000000"],      # Unemployment Rate (US)
         "startyear": "2005",
-        "endyear": "2025"
+        "endyear": "2025",
+        "registrationKey": mykey
     }
-    
-    if mykey:
-        payload["registrationKey"] = mykey
-    
-    try:
-        r = requests.post(url, json=payload, timeout=10)
-        
-        if r.status_code == 200:
-            data = r.json()
+
+    r = requests.post(url, json=payload)
+
+    r.text
+    data = r.json()["Results"]["series"][0]["data"]
+    df = pd.DataFrame(data)
+
+
+
+
+    df["unemployment_rate"] = df["value"].astype(float)
+    df['year_month'] = df['year'] + '-' + df['period'].str[1:]
+    df['year_month'] = pd.to_datetime(df['year_month'])
             
-            if data['status'] == 'REQUEST_SUCCEEDED':
-                series_data = data['Results']['series'][0]['data']
-                
-                dates = []
-                values = []
-                
-                for item in series_data:
-                    year = int(item['year'])
-                    period = item['period']
-                    
-                    if period.startswith('M'):
-                        month = int(period[1:])
-                        date = pd.Timestamp(year=year, month=month, day=1)
-                        value = float(item['value'])
-                        
-                        dates.append(date)
-                        values.append(value)
-                
-                df = pd.DataFrame({
-                    'year_month': dates,
-                    'unemployment_rate': values
-                })
-                
-                df = df.sort_values('year_month').reset_index(drop=True)
-                
-                print(f"✓ Retrieved {len(df)} data points from BLS")
-                print(f"Date range: {df['year_month'].min()} to {df['year_month'].max()}")
-                print(f"\nFirst few records:")
-                print(df.head())
-                print(f"\nLast few records:")
-                print(df.tail())
-                
-                return df
-            else:
-                print(f"✗ BLS API error: {data.get('message', 'Unknown error')}")
-        else:
-            print(f"✗ HTTP error: {r.status_code}")
+    df = df.sort_values('year_month').reset_index(drop=True)
+except Exception as e:
+    print(f"\n⚠ Data retrieval failed: {e}")
     
-    except Exception as e:
-        print(f"✗ Failed to retrieve data from BLS API: {str(e)}")
-    
-    return None
 
-# Retrieve data
-df = get_us_unemployment()
-
-if df is None or len(df) < 20:
-    print("\n⚠ Using synthetic data for demonstration")
-    dates = pd.date_range(start='2005-01-01', end='2025-10-01', freq='MS')
-    np.random.seed(42)
-    trend = np.linspace(5, 8, len(dates))
-    seasonal = 1.5 * np.sin(np.arange(len(dates)) * 2 * np.pi / 12)
-    noise = np.random.normal(0, 0.3, len(dates))
-    values = trend + seasonal + noise
+# if df is None or len(df) < 20:
+#     print("\n⚠ Using synthetic data for demonstration")
+#     dates = pd.date_range(start='2005-01-01', end='2025-10-01', freq='MS')
+#     np.random.seed(42)
+#     trend = np.linspace(5, 8, len(dates))
+#     seasonal = 1.5 * np.sin(np.arange(len(dates)) * 2 * np.pi / 12)
+#     noise = np.random.normal(0, 0.3, len(dates))
+#     values = trend + seasonal + noise
     
-    df = pd.DataFrame({
-        'year_month': dates,
-        'unemployment_rate': values
-    })
+#     df = pd.DataFrame({
+#         'year_month': dates,
+#         'unemployment_rate': values
+#     })
 
 # ============================================================================
 # 2. INITIAL VISUALIZATION WITH CONFIDENCE INTERVALS
