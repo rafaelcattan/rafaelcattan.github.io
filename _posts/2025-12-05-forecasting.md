@@ -2,6 +2,7 @@
 title: "US Unemployemnt Forecasting: a use-case"
 date: 2025-12-05
 classes: wide  
+mathjax: true
 ---
 
 In this post I'll explore a time-series forecasting problem. This is not only a classic data-science problem, but also an economics one. Whereas in the first, companies are interested in forecasting sales, conversions, net revenue, or any other relevant KPI, in economics it is often related to macroeconomic series.
