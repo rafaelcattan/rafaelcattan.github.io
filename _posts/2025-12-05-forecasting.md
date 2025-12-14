@@ -10,3 +10,9 @@ Since it is easier to access public API-based macroeconomic data-sets I'll stick
 In the post I'll adress the following question: can I forecast the US unemployment rate? 
 
 First things first, lets dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau Of Labour and Statistics ](https://api.bls.gov)), making only 240 observations.
+
+Before any methodological overview, lets have quick look at the time series under analysis:
+
+<p align="center">
+  <img src="/analysis/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
+</p>
