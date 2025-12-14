@@ -2,7 +2,7 @@
 title: "US Unemployemnt Forecasting: a use-case"
 date: 2025-12-05
 classes: wide  
-mathjax: true
+layout: single
 ---
 
 In this post I'll explore a time-series forecasting problem. This is not only a classic data-science problem, but also an economics one. Whereas in the first, companies are interested in forecasting sales, conversions, net revenue, or any other relevant KPI, in economics it is often related to macroeconomic series.
@@ -42,21 +42,21 @@ In terms of forecastability, hence, the period shows a double challenge, not onl
 
 ## Measuring Predictability
 
-One of the most standard ways of measuring how predicatable a time-series is through Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $CoV = \frac{\sigma}{\mu}$. A value smaller than 0.5 should be considerd relatively smooth, $0.5<CoV<1$ can be considered unstable, whereas a $CoV>1$ can be considered quite unstable.
+One of the most standard ways of measuring how predicatable a time-series is through Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $$CoV = \frac{\sigma}{\mu}$$. A value smaller than 0.5 should be considerd relatively smooth, $0.5<CoV<1$ can be considered unstable, whereas a $CoV>1$ can be considered quite unstable.
 
 For our series, this ratio if of about 0.36. This metric, however, is quite poor since it does not grasp any time-dependece of the series: that is the data distribution is simply considered as independent, with no attention to time-specific dimensions, such as seasonality, trend, or even order itself. A look at the series shows and $CoV$ can be misleading.
 
 A hands-on approach that considers time-specific structure is the Mean Absolute Scaled Error, formaly defined as : 
 
-$\[
+$$
 \text{MASE} =
 \frac{\frac{1}{n}\sum_{t=1}^{n} \lvert y_t - \hat{y}_t \rvert}
 {\frac{1}{n-1}\sum_{t=2}^{n} \lvert y_t - y_{t-1} \rvert}
-\]$
+$$
 
 Simply put, this method highlights \it{how better (in the best scenario) is my model against the last observed value?}
 
-Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find: 8.8, 1.5 and 1.13, respectively. As it is standard, MASE values >1 are assumed to be tricky. 
+Since $y_t$$ and $y_{t-1}$ are given, what we need to estimate is $$\hat{y}_t$$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find: 8.8, 1.5 and 1.13, respectively. As it is standard, MASE values >1 are assumed to be tricky. 
 
 But hang in there, we still have a lot of room to find out how far can we can in terms of forecasting the US unemployment rate.
 
