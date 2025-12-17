@@ -59,7 +59,7 @@ $$
 
 Simply put, this method highlights *how better (in the best scenario) is my model against the last observed value?*
 
-Since $y_t$$ and $$y_{t-1}$$ are given, what we need to estimate is $$\hat{y}_t$$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find: 8.8, 1.5 and 1.13, respectively. As it is standard, MASE values >1 are assumed to be tricky. 
+Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find: 8.8, 1.5 and 1.13, respectively. As it is standard, MASE values >1 are assumed to be tricky. 
 
 But hang in there, we still have a lot of room to find out how far can we can in terms of forecasting the US unemployment rate.
 
