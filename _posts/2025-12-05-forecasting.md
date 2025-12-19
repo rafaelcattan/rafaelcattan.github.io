@@ -67,9 +67,22 @@ Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. On
 | Naive Estimator (Past 6 Months Mean) | 1.5 |
 | ARIMA | 1.13 |
 
- As it is standard, MASE values >1 are assumed to be tricky. 
+It is interesting to notice that, since MASE values >1 are assumed to be tricky, we can say that out problem is not an easy one. 
 
-But hang in there, we still have a lot of room to find out how far can we can in terms of forecasting the US unemployment rate.
+Second, it is iteresting to notice how the 6 month mean performed much better than the overall mean. This suggests what we can time-dependence on the series, meaning that past values influence future values.
 
+A common time-series diagnosis for such patter are the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF), which measure the effect of $y_{t-k}$ on $y_{t}$. The first disregards the intermediate effects of $t-k-1$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
+
+
+<p align="center">
+  <img src="/analysis/pacf_pac.png" alt="" width="800">
+</p>
+
+We can see that the the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time dependent and the effect of lags greater than 2 are rather small.
+
+So our series is auto-correlated and its one hard to estiamte according to different MASE metrics. 
+
+
+## Predicting
 
 
