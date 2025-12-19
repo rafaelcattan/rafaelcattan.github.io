@@ -34,7 +34,7 @@ Another interesting observation is how unemployment behaved differently across t
 
 
 <p align="center">
-  <img src="/analysis/crisis_comparison.png" alt="" width="800">
+  <img src="/assets/forecasting/crisis_comparison.png" alt="" width="800">
 </p>
 
 
@@ -75,7 +75,7 @@ A common time-series diagnosis for such patter are the Autocorrelation Function 
 
 
 <p align="center">
-  <img src="/analysis/pacf_pac.png" alt="" width="800">
+  <img src="/assets/forecasting/pacf_pac.png" alt="" width="800">
 </p>
 
 We can see that the the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time dependent and the effect of lags greater than 2 are rather small.
@@ -85,4 +85,32 @@ So our series is auto-correlated and its one hard to estiamte according to diffe
 
 ## Predicting
 
+Before picking a standard method and running .fit() lets first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The statsmodel lib provides a built in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
+
+
+<p align="center">
+  <img src="/assets/forecasting/seasonal_decomposition.png" alt="" width="800">
+</p>
+
+As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the serie's maximum heights and they returned an yearly seasonality:
+
+```python
+high_seasonal = decomposition.seasonal[abs(decomposition.seasonal) > decomposition.seasonal.abs().quantile(0.9)]   
+
+time_diffs = high_seasonal.index.to_series().diff() 
+
+``` 
+
+Which has been further corroborated by a standard Fourier Transformation:
+
+
+```python
+yf = rfft(decomposition.seasonal.values - decomposition.seasonal.values.mean())
+xf = rfftfreq(len(df), d=1) # d=1 for monthly steps
+
+# Find frequency with highest power
+idx = np.argmax(np.abs(yf))
+dominant_period = 1 / xf[idx]
+
+``` 
 

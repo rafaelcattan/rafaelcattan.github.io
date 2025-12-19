@@ -114,33 +114,43 @@ print("\n" + "-" * 80)
 print("SEASONAL DECOMPOSITION")
 print("-" * 80)
 
+
+from statsmodels.tsa.seasonal import STL
 decomposition = seasonal_decompose(
     df_ts['unemployment_rate'], 
     model='additive', 
     period=12
 )
 
-fig, axes = plt.subplots(4, 1, figsize=(16, 10))
+decomposition_stl = STL(
+    df_ts['unemployment_rate'], 
+    period=12
+)
+
+fig, axes = plt.subplots(4, 2, figsize=(16, 10))
 
 decomposition.observed.plot(ax=axes[0], color='#2E86AB', linewidth=2)
-axes[0].set_title('Observed', fontsize=12, fontweight='bold')
-axes[0].set_ylabel('Observed', fontsize=10)
-axes[0].grid(True, alpha=0.3)
-
+axes[0,1].set_title('Observed', fontsize=12, fontweight='bold')
+axes[0,1].set_ylabel('Observed', fontsize=10)
+axes[0,1].grid(True, alpha=0.3)
+,1
 decomposition.trend.plot(ax=axes[1], color='#A23B72', linewidth=2)
-axes[1].set_title('Trend', fontsize=12, fontweight='bold')
-axes[1].set_ylabel('Trend', fontsize=10)
-axes[1].grid(True, alpha=0.3)
-
+axes[1,1].set_title('Trend', fontsize=12, fontweight='bold')
+axes[1,1].set_ylabel('Trend', fontsize=10)
+axes[1,1].grid(True, alpha=0.3)
+,1
 decomposition.seasonal.plot(ax=axes[2], color='#F18F01', linewidth=2)
-axes[2].set_title('Seasonal', fontsize=12, fontweight='bold')
-axes[2].set_ylabel('Seasonal', fontsize=10)
-axes[2].grid(True, alpha=0.3)
+axes[2,1].set_title('Seasonal', fontsize=12, fontweight='bold')
+axes[2,1].set_ylabel('Seasonal', fontsize=10)
+axes[2,1].grid(True, alpha=0.3)
 
 decomposition.resid.plot(ax=axes[3], color='#C73E1D', linewidth=1.5)
-axes[3].set_title('Residual', fontsize=12, fontweight='bold')
-axes[3].set_ylabel('Residual', fontsize=10)
-axes[3].grid(True, alpha=0.3)
+axes[3,1].set_title('Residual', fontsize=12, fontweight='bold')
+axes[3,1].set_ylabel('Residual', fontsize=10)
+axes[3,1].grid(True, alpha=0.3)
+
+
+
 
 plt.tight_layout()
 plt.savefig('seasonal_decomposition.png', dpi=300, bbox_inches='tight')
@@ -164,3 +174,4 @@ if adf_result[1] < 0.05:
     print("\n✓ Series is STATIONARY (p < 0.05)")
 else:
     print("\n✗ Series is NON-STATIONARY (p >= 0.05)")
+
