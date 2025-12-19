@@ -99,6 +99,11 @@ high_seasonal = decomposition.seasonal[abs(decomposition.seasonal) > decompositi
 
 time_diffs = high_seasonal.index.to_series().diff() 
 
+year_month
+2005-04-01    0.383626
+2006-04-01    0.383626
+...
+
 ``` 
 
 Which has been further corroborated by a standard Fourier Transformation:
@@ -111,6 +116,6 @@ xf = rfftfreq(len(df), d=1) # d=1 for monthly steps
 # Find frequency with highest power
 idx = np.argmax(np.abs(yf))
 dominant_period = 1 / xf[idx]
-
+12.0
 ``` 
 
