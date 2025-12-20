@@ -110,10 +110,12 @@ Which has been further corroborated by a standard Fourier Transformation:
 
 
 ```python
-yf = rfft(decomposition.seasonal.values - decomposition.seasonal.values.mean())
-xf = rfftfreq(len(df), d=1) # d=1 for monthly steps
+from scipy.fft import rfft, rfftfreq
 
-# Find frequency with highest power
+yf = rfft(decomposition.seasonal.values - decomposition.seasonal.values.mean())
+xf = rfftfreq(len(df), d=1) 
+
+# Finding highest power
 idx = np.argmax(np.abs(yf))
 dominant_period = 1 / xf[idx]
 12.0
