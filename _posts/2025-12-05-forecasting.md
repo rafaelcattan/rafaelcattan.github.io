@@ -34,7 +34,7 @@ Another interesting observation is how unemployment behaved differently across t
 
 
 <p align="center">
-  <img src="/assets/forecasting/crisis_comparison.png" alt="" width="800">
+  <img src="/assets/images/forecasting/crisis_comparison.png" alt="" width="800">
 </p>
 
 
@@ -75,7 +75,7 @@ A common time-series diagnosis for such patter are the Autocorrelation Function 
 
 
 <p align="center">
-  <img src="/assets/forecasting/pacf_pac.png" alt="" width="800">
+  <img src="/assets/images/forecasting/pacf_pac.png" alt="" width="800">
 </p>
 
 We can see that the the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time dependent and the effect of lags greater than 2 are rather small.
@@ -89,7 +89,7 @@ Before picking a standard method and running .fit() lets first understand better
 
 
 <p align="center">
-  <img src="/assets/forecasting/seasonal_decomposition.png" alt="" width="800">
+  <img src="/assets/images/forecasting/seasonal_decomposition.png" alt="" width="800">
 </p>
 
 As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the serie's maximum heights and they returned an yearly seasonality:
