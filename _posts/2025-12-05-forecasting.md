@@ -21,7 +21,7 @@ First things first, lets dive into the data. I'm using US monthly unemployment r
 Before any methodological overview, lets have quick look at the time series under analysis:
 
 <p align="center">
-  <img src="/analysis/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
+  <img src="/assets/images/forecasting/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
 </p>
 
 Besides the time series itself I have added its confidence interval, a rolling 12-month average (more useful for high-volatility seires), and two distinct periods that diserve some attention: the 2008 financial crash and the 2020 Covid pandemics.
