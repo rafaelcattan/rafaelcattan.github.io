@@ -12,7 +12,7 @@ In this post I'll explore a time-series forecasting problem. This is not only a 
 
 Since it is easier to access public API-based macroeconomic data-sets I'll stick with the second.
 
-In the post I'll adress the following question: can I forecast the US unemployment rate? 
+In the post I'll adress the following question: can we forecast the US unemployment rate? 
 
 First things first, lets dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau Of Labour and Statistics ](https://api.bls.gov)), making only 240 observations.
 
@@ -24,13 +24,13 @@ Before any methodological overview, lets have quick look at the time series unde
   <img src="/assets/images/forecasting/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
 </p>
 
-Besides the time series itself I have added its confidence interval, a rolling 12-month average (more useful for high-volatility seires), and two distinct periods that diserve some attention: the 2008 financial crash and the 2020 Covid pandemics.
+Besides the time series itself I have added its confidence interval, a rolling 12-month average (more useful for high-volatility series), and two distinct periods that diserve some attention: the 2008 financial crash and the 2020 Covid pandemics.
 
-Since theses are not endogenous economic events, there is a good chance that our model will fail badly in those periods.
+Since these events are not endogenous economic events, there is a good chance that our model will fail badly in those periods.
 
 Despite these shocks, 80% of the observations fall between a 3.4-7.7% range, with a 5.8% mean and a 2.12 standard deviation. Meaning that under "normal periods" the serie is relatively stable.
 
-Another interesting observation is how unemployment behaved differently across these two periods. First the 2008 financial crisis took longer to reach its maximum level and also too longer to converge back to the period average. The Covid shock, on the other hand, halved ocuppations extremely fast, but was also faster to converge. We can better illustrate this with the following plot:
+Another interesting observation is how unemployment behaved differently across the two periods. First the 2008 financial crisis took longer to reach its maximum level and more so to converge back to the period's average. The Covid shock, on the other hand, halved ocuppations extremely fast, but was also faster to converge. We can better illustrate this with the following plot:
 
 
 <p align="center">
@@ -38,16 +38,16 @@ Another interesting observation is how unemployment behaved differently across t
 </p>
 
 
-We can see the GFC takes impressive 83 months from its assumed beggining (2007-12-01) until it converges to the period mean (2014-10-01). This means a 9-year sluggish recover. The Covid pandemics, on its turn, takes approximately 23 months from its beggining, in February 2020, until it converges to the period mean again, in December 2021, despite hitting a much higher unemployment level of nearly 15%.
+We can see the GFC takes impressive 82 months from its assumed beggining (2007-12-01) until it converges to the period mean (2014-09-01). This means a 9-year sluggish recover. The Covid pandemics, on its turn, takes approximately 15 months from its beggining, in February 2020, until it converges to the period mean again, in May 2021, despite hitting a much higher unemployment level of nearly 15%.
 
-In terms of forecastability, hence, the period shows a double challenge, not only two massive shocks, they showed very distinct patterns. Having contextualized the period' highlights the question we should be askin is: **is the US unemployment rate between (2014/12 - 2024/12) predictable?**
+In terms of forecastability, hence, the period shows a double challenge, not only two massive shocks, but two very distinct patterns. Having contextualized the the unemployment rate during the period of data availabilty, we should ask ourselves: **is the US unemployment rate between (2014/12 - 2024/12) predictable?**
 
 
 ## Measuring Predictability
 
 One of the most standard ways of measuring how predicatable a time-series is through Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $$CoV = \frac{\sigma}{\mu}$$. A value smaller than 0.5 should be considerd relatively smooth, $0.5<CoV<1$ can be considered unstable, whereas a $CoV>1$ can be considered quite unstable.
 
-For our series, this ratio if of about 0.36. This metric, however, is quite poor since it does not grasp any time-dependece of the series: that is the data distribution is simply considered as independent, with no attention to time-specific dimensions, such as seasonality, trend, or even order itself. A look at the series shows and $CoV$ can be misleading.
+For our series, this ratio if of about 0.36. This metric, however, is quite poor since it does not grasp any time-dependece of the series. That is, the data distribution is simply considered as independent, with no attention to time-specific dimensions, such as seasonality, trend, or even order itself. A simple look at the series can give us an idea of how  $CoV$ can be misleading.
 
 A hands-on approach that considers time-specific structure is the Mean Absolute Scaled Error, formaly defined as : 
 
@@ -57,7 +57,7 @@ $$
 {\frac{1}{n-1}\sum_{t=2}^{n} \lvert y_t - y_{t-1} \rvert}
 $$
 
-Simply put, this method highlights *how better (in the best scenario) is my model against the last observed value?*
+Simply put, this method highlights *how better is my model against the last observed value?*
 
 Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find:
 
@@ -67,11 +67,11 @@ Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. On
 | Naive Estimator (Past 6 Months Mean) | 1.5 |
 | ARIMA | 1.13 |
 
-It is interesting to notice that, since MASE values >1 are assumed to be tricky, we can say that out problem is not an easy one. 
+It is interesting to notice that, since MASE values >1 are assumed to be tricky, we confirm that out problem is not an easy one. 
 
-Second, it is iteresting to notice how the 6 month mean performed much better than the overall mean. This suggests what we can time-dependence on the series, meaning that past values influence future values.
+Second, it is iteresting to notice how the 6 month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
 
-A common time-series diagnosis for such patter are the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF), which measure the effect of $y_{t-k}$ on $y_{t}$. The first disregards the intermediate effects of $t-k-1$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
+A common time-series diagnosis for such patter is to use the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF). They measure the effect of $y_{t-k}$ on $y_{t}$. The first disregards the intermediate effects of $t-k-1$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
 
 
 <p align="center">
@@ -80,33 +80,33 @@ A common time-series diagnosis for such patter are the Autocorrelation Function 
 
 We can see that the the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time dependent and the effect of lags greater than 2 are rather small.
 
-So our series is auto-correlated and its one hard to estiamte according to different MASE metrics. 
+So our series is auto-correlated and its one hard to estimate according to different MASE metrics. 
 
 
 ## Predicting
 
-Before picking a standard method and running .fit() lets first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The statsmodel lib provides a built in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
+Before picking a standard method and running .fit() lets first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The [statsmodel](https://www.statsmodels.org/stable/index.html) lib provides a built-in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
 
 
 <p align="center">
   <img src="/assets/images/forecasting/seasonal_decomposition.png" alt="" width="800">
 </p>
 
-As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the serie's maximum heights and they returned an yearly seasonality:
+As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the serie's nineth decile ($q=.9$) and they returned an yearly seasonality:
 
 ```python
-high_seasonal = decomposition.seasonal[abs(decomposition.seasonal) > decomposition.seasonal.abs().quantile(0.9)]   
+# Get seasonal component values with absolute value > 90th percentile
+high_seasonal = decomposition.seasonal[abs(decomposition.seasonal) > decomposition.seasonal.abs().quantile(0.9)]    
 
+# Calculate time differences between these dates
 time_diffs = high_seasonal.index.to_series().diff() 
+time_diffs.mean()
 
-year_month
-2005-04-01    0.383626
-2006-04-01    0.383626
-...
+Timedelta('365 days 06:18:56.842105264')
 
 ``` 
 
-Which has been further corroborated by a standard Fourier Transformation:
+Which has been further corroborated by a standard a Fast Fourier Transform:
 
 
 ```python
