@@ -126,6 +126,8 @@ Wrapping up what we have seen so far we can say that our series is time-dependen
 
 ## Fitting
 
+
+### The Methodological Approach
 When tackling a macro-economic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
 
 First things, first: The **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a kind of go-to method when you want to have a first predictability idea. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, be them explained by the series itself or by its seasonality.
@@ -170,3 +172,18 @@ from sklearn.ensemble import RandomForestRegressor
 # target = y_t, features = [y_{t-1}, y_{t-2}, y_{t-3}]
 model_rf = RandomForestRegressor(n_estimators=100, max_depth=10)
 model_rf.fit(X_train_lags, y_train)
+```
+
+### The Estimates
+
+For simplicity, the first approach was to train our data on half the time (2005/01/01 - 2014-12-01) and estimate on a hold-out set (the next 120 periods).
+
+I have constructed confidence intervals for all of them, and compared on a single plot:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecast_results.png" alt="" width="800">
+</p>
+
+
+
