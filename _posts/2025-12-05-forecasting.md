@@ -153,7 +153,7 @@ $$y(t) = g(t) + s(t) + h(t) + \epsilon_t$$
 
 While the components are **summed** together (making it additive), the individual components are non-linear: the trend can be fitted as a logistic growth curve or a growth-rate adjusted at given states. Whereas the seasonality is a **Fourier Series** which by definition is not linear.
 
-If this strategy allows it to handle irregular spacing and structural breaks—like economic crises—more better, the model still departures from a given functional form, meaning that the algorithm effort is to find the best parameters that match that specific functional form.
+If this strategy allows it to handle irregular spacing and structural breaks—like economic crises with ease, the model still relies on a given functional form. That is, the algorithm effort is to find the best parameters that match that specific functional form.
 
 Our third model specification, on the other hand, starts from a different problem: given the data, which functional form fits best?
 
@@ -185,5 +185,21 @@ I have constructed confidence intervals for all of them, and compared on a singl
   <img src="/assets/images/forecasting/forecast_results.png" alt="" width="800">
 </p>
 
+Two things diserve attention. First, none could foresee the unemployment rate during the Covid, which should be obvious, since there is no previous pattern to be replicated. There is no past values even close to that change, there is no seasonality in pandemics (I would guess).
+
+Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 crisis. This is explained by their own nature: both assume a given function that depends on either residuals or time-based modules: trend and seasonality. This over-reliance on past data structure have failed both them to forecast future unemployment rates (let alone the Covid Crisis.). In the end, the model foresses negative unemployment rates which are impossible. Even though Prophet is able to capture regime-changes in its trend function, it has clearly failed that task.  
+
+The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally its MAPIE-based confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
+
+The errors clearly illustrate the how different, on average, the predictions were from observed data
 
 
+<p align="center">
+  <img src="/assets/images/forecasting/forecast_errors.png" alt="" width="800">
+</p>
+
+We can see that using standard (continuous-values) error metrics such as MAE and RMSE, the RF model outperforms its peers. The error difference ranging between 107-180% for RMSE and 60-121% for the MAE.
+
+## Conclusion
+
+Adding MAPIE (conformal prediction) to Random Forest provided an additional edge: empirically-calibrated uncertainty quantification. Rather than assuming error distributions, MAPIE learned from actual historical prediction errors, providing realistic prediction intervals that widened appropriately over the forecast horizon.
