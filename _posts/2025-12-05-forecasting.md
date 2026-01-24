@@ -182,7 +182,7 @@ I have constructed confidence intervals for all of them, and compared on a singl
 
 
 <p align="center">
-  <img src="/assets/images/forecasting/forecast_results.png" alt="" width="800">
+  <img src="/assets/images/forecasting/forecasting.png" alt="" width="800">
 </p>
 
 Two things diserve attention. First, none could foresee the unemployment rate during the Covid, which should be obvious, since there is no previous pattern to be replicated. There is no past values even close to that change, there is no seasonality in pandemics (I would guess).
