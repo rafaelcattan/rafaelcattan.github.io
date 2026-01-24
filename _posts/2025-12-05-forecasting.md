@@ -125,3 +125,48 @@ dominant_period = 1 / xf[idx]
 Wrapping up what we have seen so far we can say that our series is time-dependent, non-stationary (from the exponential decay of the PAC plot), has a yearly seasonality, and suffered two strong but distinct shocks during the period of analysis. With that in mind we'll explore three different approaches taking that information into account.
 
 ## Fitting
+
+When tackling a macro-economic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
+
+First things, first: The **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a kind of go-to method when you want to have a first predictability idea. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, be them explained by the series itself or by its seasonality.
+
+The specific identification of our SARIMA model, **$(0,2,1) \times (0,0,1)_{12}$** (via the AIC criterion), corresponds to a specific expansion of the lag operator. The equation we are fitting to the US unemployment data is summarized as:
+
+$$(1-L)^2 y_t = \epsilon_t + \theta_1 \epsilon_{t-1} + \Theta_1 \epsilon_{t-12} + \theta_1 \Theta_1 \epsilon_{t-13}$$
+
+
+* **Second-Order Differencing $(1-L)^2$**: This term represents the "acceleration" of the series. Mathematically, it expands to $y_t - 2y_{t-1} + y_{t-2}$, which effectively removes non-linear stochastic trends from the unemployment rate.
+
+* **Short-Term Error ($\theta_1 \epsilon_{t-1}$)**: This captures the impact of the residual (shock) from the immediate previous month.
+
+* **Seasonal Error ($\Theta_1 \epsilon_{t-12} a$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: Which identifies the seasonal residual from 12 and 13 months ago, allowing the model to correct for annual cycles.
+
+So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta$) and yearly seasonal residuals ($\Theta$).
+
+
+In contrast to the regressive nature of SARIMA, **Prophet** views forecasting as a curve-fitting exercise. Its methodology is built on a **Generalized Additive Model (GAM)**. Rather than looking for autocorrelation, it decomposes the signal into distinct structural components. Its functional form is:
+
+$$y(t) = g(t) + s(t) + h(t) + \epsilon_t$$
+
+
+While the components are **summed** together (making it additive), the individual components are non-linear: the trend can be fitted as a logistic growth curve or a growth-rate adjusted at given states. Whereas the seasonality is a **Fourier Series** which by definition is not linear.
+
+If this strategy allows it to handle irregular spacing and structural breaks—like economic crises—more better, the model still departures from a given functional form, meaning that the algorithm effort is to find the best parameters that match that specific functional form.
+
+Our third model specification, on the other hand, starts from a different problem: given the data, which functional form fits best?
+
+The **RandomForestRegressor** shifts the paradigm from temporal sequences to a supervised learning problem. Since decision trees are inherently "time-blind," the methodology requires manual feature engineering to create a lag-matrix ($y_{t-1}, y_{t-2}, \dots$). So basically it excels at capturing non-linear interactions between lags—something SARIMA cannot do—but it lacks an internal mechanism to handle trends (extrapolation). Its functional form is an average of $B$ individual tree predictions:
+
+$$\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)$$
+
+Where:
+* $T_b(x)$ is the output of a single decision tree grown on a bootstrap sample.
+* $x$ is the input vector of lagged features.
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+# Example: Converting the series to a supervised problem
+# target = y_t, features = [y_{t-1}, y_{t-2}, y_{t-3}]
+model_rf = RandomForestRegressor(n_estimators=100, max_depth=10)
+model_rf.fit(X_train_lags, y_train)
