@@ -191,11 +191,11 @@ Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 cr
 
 The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally its MAPIE-based confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
 
-The errors clearly illustrate the how different, on average, the predictions were from observed data
+The errors clearly illustrate the how different, on average, the predictions were from observed data:
 
 
 <p align="center">
-  <img src="/assets/images/forecasting/forecast_errors.png" alt="" width="800">
+  <img src="/assets/images/forecasting/forecasting_errors.png" alt="" width="800">
 </p>
 
 We can see that using standard (continuous-values) error metrics such as MAE and RMSE, the RF model outperforms its peers. The error difference ranging between 107-180% for RMSE and 60-121% for the MAE.
