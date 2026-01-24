@@ -85,6 +85,7 @@ So our series is auto-correlated and its one hard to estimate according to diffe
 
 ## Predicting
 
+
 Before picking a standard method and running .fit() lets first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The [statsmodel](https://www.statsmodels.org/stable/index.html) lib provides a built-in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
 
 
@@ -121,3 +122,6 @@ dominant_period = 1 / xf[idx]
 12.0
 ``` 
 
+Wrapping up what we have seen so far we can say that our series is time-dependent, non-stationary (from the exponential decay of the PAC plot), has a yearly seasonality, and suffered two strong but distinct shocks during the period of analysis. With that in mind we'll explore three different approaches taking that information into account.
+
+## Fitting
