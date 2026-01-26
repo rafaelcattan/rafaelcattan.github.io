@@ -1,5 +1,5 @@
 ---
-title: "US Unemployemnt Forecasting: a use-case"
+title: "US Unemployment Forecasting: a use-case"
 date: 2025-12-05
 classes: wide  
 layout: single
@@ -10,27 +10,27 @@ usemathjax: true
 
 In this post I'll explore a time-series forecasting problem. This is not only a classic data-science problem, but also an economics one. Whereas in the first, companies are interested in forecasting sales, conversions, net revenue, or any other relevant KPI, in economics it is often related to macroeconomic series.
 
-Since it is easier to access public API-based macroeconomic data-sets I'll stick with the second.
+Since it is easier to access public API-based macroeconomic datasets, I'll stick with the second.
 
-In the post I'll adress the following question: can we forecast the US unemployment rate? 
+In the post I'll address the following question: can we forecast the US unemployment rate?
 
-First things first, lets dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau Of Labour and Statistics ](https://api.bls.gov)), making only 240 observations.
+First things first, let's dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau of Labor Statistics](https://api.bls.gov)), making only 240 observations.
 
 ## Some Context
 
-Before any methodological overview, lets have quick look at the time series under analysis:
+Before any methodological overview, let's have a quick look at the time series under analysis:
 
 <p align="center">
   <img src="/assets/images/forecasting/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
 </p>
 
-Besides the time series itself I have added its confidence interval, a rolling 12-month average (more useful for high-volatility series), and two distinct periods that diserve some attention: the 2008 financial crash and the 2020 Covid pandemics.
+Besides the time series itself I have added its confidence interval, a rolling 12-month average (more useful for high-volatility series), and two distinct periods that deserve some attention: the 2008 financial crash and the 2020 COVID-19 pandemic.
 
 Since these events are not endogenous economic events, there is a good chance that our model will fail badly in those periods.
 
-Despite these shocks, 80% of the observations fall between a 3.4-7.7% range, with a 5.8% mean and a 2.12 standard deviation. Meaning that under "normal periods" the serie is relatively stable.
+Despite these shocks, 80% of the observations fall between a 3.4-7.7% range, with a 5.8% mean and a standard deviation of 2.12. Meaning that under "normal periods" the series is relatively stable.
 
-Another interesting observation is how unemployment behaved differently across the two periods. First the 2008 financial crisis took longer to reach its maximum level and more so to converge back to the period's average. The Covid shock, on the other hand, halved ocuppations extremely fast, but was also faster to converge. We can better illustrate this with the following plot:
+Another interesting observation is how unemployment behaved differently across the two periods. First the 2008 financial crisis took longer to reach its maximum level and more so to converge back to the period's average. The COVID-19 shock, on the other hand, halved occupations extremely fast, but was also faster to converge. We can better illustrate this with the following plot:
 
 
 <p align="center">
@@ -38,18 +38,18 @@ Another interesting observation is how unemployment behaved differently across t
 </p>
 
 
-We can see the GFC takes impressive 82 months from its assumed beggining (2007-12-01) until it converges to the period mean (2014-09-01). This means a 9-year sluggish recover. The Covid pandemics, on its turn, takes approximately 15 months from its beggining, in February 2020, until it converges to the period mean again, in May 2021, despite hitting a much higher unemployment level of nearly 15%.
+We can see the GFC takes an impressive 82 months from its assumed beginning (2007-12-01) until it converges to the period mean (2014-09-01). This means a 9-year sluggish recovery. The COVID-19 pandemic, on its turn, takes approximately 15 months from its beginning, in February 2020, until it converges to the period mean again, in May 2021, despite hitting a much higher unemployment level of nearly 15%.
 
-In terms of forecastability, hence, the period shows a double challenge, not only two massive shocks, but two very distinct patterns. Having contextualized the the unemployment rate during the period of data availabilty, we should ask ourselves: **is the US unemployment rate between (2014/12 - 2024/12) predictable?**
+In terms of forecastability, hence, the period shows a double challenge, not only two massive shocks, but two very distinct patterns. Having contextualized the unemployment rate during the period of data availability, we should ask ourselves: **is the US unemployment rate between (2014/12 - 2024/12) predictable?**
 
 
 ## Measuring Predictability
 
-One of the most standard ways of measuring how predicatable a time-series is through Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $$CoV = \frac{\sigma}{\mu}$$. A value smaller than 0.5 should be considerd relatively smooth, $0.5<CoV<1$ can be considered unstable, whereas a $CoV>1$ can be considered quite unstable.
+One of the most standard ways of measuring how predictable a time-series is through Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $$CoV = \frac{\sigma}{\mu}$$. A value smaller than 0.5 should be considered relatively smooth, $0.5<CoV<1$ can be considered unstable, whereas a $CoV>1$ can be considered quite unstable.
 
-For our series, this ratio if of about 0.36. This metric, however, is quite poor since it does not grasp any time-dependece of the series. That is, the data distribution is simply considered as independent, with no attention to time-specific dimensions, such as seasonality, trend, or even order itself. A simple look at the series can give us an idea of how  $CoV$ can be misleading.
+For our series, this ratio is about 0.36. This metric, however, is quite poor since it does not grasp any time-dependence of the series. That is, the data distribution is simply considered as independent, with no attention to time-specific dimensions, such as seasonality, trend, or even order itself. A simple look at the series can give us an idea of how  $CoV$ can be misleading.
 
-A hands-on approach that considers time-specific structure is the Mean Absolute Scaled Error, formaly defined as : 
+A hands-on approach that considers time-specific structure is the Mean Absolute Scaled Error, formally defined as:
 
 $$
 \text{MASE} =
@@ -57,9 +57,9 @@ $$
 {\frac{1}{n-1}\sum_{t=2}^{n} \lvert y_t - y_{t-1} \rvert}
 $$
 
-Simply put, this method highlights *how better is my model against the last observed value?*
+Simply put, this method highlights *how much better is my model compared to the last observed value?*
 
-Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or as simple univariate estimate, like ARIMA. Estimating theses values for our problem I cound find:
+Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or a simple univariate estimate, like ARIMA. Estimating these values for our problem I could find:
 
 | Model | MASE |
 |:-------|:------:|
@@ -67,33 +67,33 @@ Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. On
 | Naive Estimator (Past 6 Months Mean) | 1.5 |
 | ARIMA | 1.13 |
 
-It is interesting to notice that, since MASE values >1 are assumed to be tricky, we confirm that out problem is not an easy one. 
+It is interesting to notice that, since MASE values >1 are assumed to be tricky, we confirm that our problem is not an easy one.
 
-Second, it is iteresting to notice how the 6 month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
+Second, it is interesting to notice how the 6-month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
 
-A common time-series diagnosis for such patter is to use the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF). They measure the effect of $y_{t-k}$ on $y_{t}$. The first disregards the intermediate effects of $t-k-1$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
+A common time-series diagnosis for such pattern is to use the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF). They measure the effect of $y_{t-k}$ on $y_{t}$. The first disregards the intermediate effects of $t-k-1$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
 
 
 <p align="center">
   <img src="/assets/images/forecasting/pacf_pac.png" alt="" width="800">
 </p>
 
-We can see that the the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time dependent and the effect of lags greater than 2 are rather small.
+We can see that the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time-dependent and the effects of lags greater than 2 are rather small.
 
-So our series is auto-correlated and its one hard to estimate according to different MASE metrics. 
+So our series is auto-correlated and it's one hard to estimate according to different MASE metrics.
 
 
 ## Predicting
 
 
-Before picking a standard method and running .fit() lets first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The [statsmodel](https://www.statsmodels.org/stable/index.html) lib provides a built-in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
+Before picking a standard method and running .fit() let's first understand better the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The [statsmodel](https://www.statsmodels.org/stable/index.html) library provides a built-in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
 
 
 <p align="center">
   <img src="/assets/images/forecasting/seasonal_decomposition.png" alt="" width="800">
 </p>
 
-As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the serie's nineth decile ($q=.9$) and they returned an yearly seasonality:
+As previously observed the trend itself is quite erratic - but due to two very meaningful shocks. The seasonality has been well grasped. Intuitively I've calculated the time between the series' ninth decile ($q=.9$) and it returned a yearly seasonality:
 
 ```python
 # Get seasonal component values with absolute value > 90th percentile
@@ -107,7 +107,7 @@ Timedelta('365 days 06:18:56.842105264')
 
 ``` 
 
-Which has been further corroborated by a standard a Fast Fourier Transform:
+Which has been further corroborated by a standard Fast Fourier Transform:
 
 
 ```python
@@ -122,15 +122,15 @@ dominant_period = 1 / xf[idx]
 12.0
 ``` 
 
-Wrapping up what we have seen so far we can say that our series is time-dependent, non-stationary (from the exponential decay of the PAC plot), has a yearly seasonality, and suffered two strong but distinct shocks during the period of analysis. With that in mind we'll explore three different approaches taking that information into account.
+Wrapping up what we have seen so far we can say that our series is time-dependent, non-stationary (from the exponential decay of the PACF plot), has a yearly seasonality, and suffered two strong but distinct shocks during the period of analysis. With that in mind we'll explore three different approaches taking that information into account.
 
 ## Fitting
 
 
 ### The Methodological Approach
-When tackling a macro-economic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
+When tackling a macroeconomic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
 
-First things, first: The **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a kind of go-to method when you want to have a first predictability idea. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, be them explained by the series itself or by its seasonality.
+First things, first: The **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a kind of go-to method when you want to have a first predictability idea. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, whether they are explained by the series itself or by its seasonality.
 
 The specific identification of our SARIMA model, **$(0,2,1) \times (0,0,1)_{12}$** (via the AIC criterion), corresponds to a specific expansion of the lag operator. The equation we are fitting to the US unemployment data is summarized as:
 
@@ -141,7 +141,7 @@ $$(1-L)^2 y_t = \epsilon_t + \theta_1 \epsilon_{t-1} + \Theta_1 \epsilon_{t-12} 
 
 * **Short-Term Error ($\theta_1 \epsilon_{t-1}$)**: This captures the impact of the residual (shock) from the immediate previous month.
 
-* **Seasonal Error ($\Theta_1 \epsilon_{t-12} a$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: Which identifies the seasonal residual from 12 and 13 months ago, allowing the model to correct for annual cycles.
+* **Seasonal Error ($\Theta_1 \epsilon_{t-12}$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: This identifies the seasonal residuals from 12 and 13 months ago, allowing the model to correct for annual cycles.
 
 So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta$) and yearly seasonal residuals ($\Theta$).
 
@@ -151,13 +151,13 @@ In contrast to the regressive nature of SARIMA, **Prophet** views forecasting as
 $$y(t) = g(t) + s(t) + h(t) + \epsilon_t$$
 
 
-While the components are **summed** together (making it additive), the individual components are non-linear: the trend can be fitted as a logistic growth curve or a growth-rate adjusted at given states. Whereas the seasonality is a **Fourier Series** which by definition is not linear.
+While the components are **summed** together (making it additive), the individual components are nonlinear: the trend can be fitted as a logistic growth curve or a growth-rate adjusted at given states. Whereas the seasonality is a **Fourier Series** which by definition is not linear.
 
-If this strategy allows it to handle irregular spacing and structural breaks—like economic crises with ease, the model still relies on a given functional form. That is, the algorithm effort is to find the best parameters that match that specific functional form.
+This strategy allows it to handle irregular spacing and structural breaks—like economic crises—with ease, but the model still relies on a given functional form. That is, the algorithm's effort is to find the best parameters that match that specific functional form.
 
 Our third model specification, on the other hand, starts from a different problem: given the data, which functional form fits best?
 
-The **RandomForestRegressor** shifts the paradigm from temporal sequences to a supervised learning problem. Since decision trees are inherently "time-blind," the methodology requires manual feature engineering to create a lag-matrix ($y_{t-1}, y_{t-2}, \dots$). So basically it excels at capturing non-linear interactions between lags—something SARIMA cannot do—but it lacks an internal mechanism to handle trends (extrapolation). Its functional form is an average of $B$ individual tree predictions:
+The **RandomForestRegressor** shifts the paradigm from temporal sequences to a supervised learning problem. Since decision trees are inherently "time-blind," the methodology requires manual feature engineering to create a lag-matrix ($y_{t-1}, y_{t-2}, \dots$). So basically it excels at capturing nonlinear interactions between lags—something SARIMA cannot do—but it lacks an internal mechanism to handle trends (extrapolation). Its functional form is an average of $B$ individual tree predictions:
 
 $$\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)$$
 
@@ -176,30 +176,30 @@ model_rf.fit(X_train_lags, y_train)
 
 ### The Estimates
 
-For simplicity, the first approach was to train our data on half the time (2005/01/01 - 2014-12-01) and estimate on a hold-out set (the next 120 periods).
+For simplicity, the first approach was to train our model on half the time (2005/01/01 - 2014-12-01) and estimate on a hold-out set (the next 120 periods).
 
-I have constructed confidence intervals for all of them, and compared on a single plot:
+I have constructed confidence intervals for all of them, and compared them on a single plot:
 
 
 <p align="center">
   <img src="/assets/images/forecasting/forecasting.png" alt="" width="800">
 </p>
 
-Two things diserve attention. First, none could foresee the unemployment rate during the Covid, which should be obvious, since there is no previous pattern to be replicated. There is no past values even close to that change, there is no seasonality in pandemics (I would guess).
+Two things deserve attention. First, none could foresee the unemployment rate during COVID-19, which should be obvious, since there is no previous pattern to be replicated. There are no past values even close to that change, there is no seasonality in pandemics (I would guess).
 
-Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 crisis. This is explained by their own nature: both assume a given function that depends on either residuals or time-based modules: trend and seasonality. This over-reliance on past data structure have failed both them to forecast future unemployment rates (let alone the Covid Crisis.). In the end, the model foresses negative unemployment rates which are impossible. Even though Prophet is able to capture regime-changes in its trend function, it has clearly failed that task.  
+Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 crisis. This is explained by their own nature: both assume a given function that depends on either residuals or time-based modules: trend and seasonality. This over-reliance on past data structure has failed them both to forecast future unemployment rates (let alone the COVID-19 crisis). In the end, the model forecasts negative unemployment rates which are impossible. Even though Prophet is able to capture regime changes in its trend function, it has clearly failed that task.
 
-The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally its MAPIE-based confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
+The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally, its MAPIE-based confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
 
-The errors clearly illustrate the how different, on average, the predictions were from observed data:
+The errors clearly illustrate how different, on average, the predictions were from observed data:
 
 
 <p align="center">
   <img src="/assets/images/forecasting/forecasting_errors.png" alt="" width="800">
 </p>
 
-We can see that using standard (continuous-values) error metrics such as MAE and RMSE, the RF model outperforms its peers. The error difference ranging between 107-180% for RMSE and 60-121% for the MAE.
+We can see that using standard (continuous-value) error metrics such as MAE and RMSE, the RF model outperforms its peers, with error differences ranging between 107-180% for RMSE and 60-121% for MAE.
 
 ## Conclusion
 
-Adding MAPIE (conformal prediction) to Random Forest provided an additional edge: empirically-calibrated uncertainty quantification. Rather than assuming error distributions, MAPIE learned from actual historical prediction errors, providing realistic prediction intervals that widened appropriately over the forecast horizon.
+Adding MAPIE (conformal prediction) to Random Forest provided an additional edge: empirically calibrated uncertainty quantification. Rather than assuming error distributions, MAPIE learned from actual historical prediction errors, providing realistic prediction intervals that widened appropriately over the forecast horizon.
