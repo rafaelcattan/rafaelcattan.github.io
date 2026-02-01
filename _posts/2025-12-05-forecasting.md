@@ -14,9 +14,14 @@ Since it is easier to access public API-based macroeconomic datasets, I'll stick
 
 In the post I'll address the following question: can we forecast the US unemployment rate?
 
-First things first, let's dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau of Labor Statistics](https://api.bls.gov)), making only 240 observations.
+More than simplying trying to find the best performance metric, this post will explore some of the nuances behind time-series forecasting. For instance, how "shocks" affect you prediction? How pre-defined forecasting functions perform against model-agnostic models? How to measure predictability?
+
+
+
 
 ## Some Context
+
+First things first, let's dive into the data. I'm using US monthly unemployment rate from 2014-12-16 until 2024-12-01 (that's all I've got in free version of the [Bureau of Labor Statistics](https://api.bls.gov)), making only 240 observations.
 
 Before any methodological overview, let's have a quick look at the time series under analysis:
 
@@ -199,6 +204,32 @@ The errors clearly illustrate how different, on average, the predictions were fr
 </p>
 
 We can see that using standard (continuous-value) error metrics such as MAE and RMSE, the RF model outperforms its peers, with error differences ranging between 107-180% for RMSE and 60-121% for MAE.
+
+But that is not the full story. These results are greatly impacted by three major choices: the length of the training data, the data-point of this training data - that is the date itself - and lastly, the lenght of the test-set, the one we are comparing our estimates against with.
+
+In order to adress this fact I have estimated 19 different models: the first model is trainned in the first year and teste in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot bellow, the first value represents the one-year-17-year train and hold-out set.
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting_errors_by_train_year.png" alt="" width="800">
+</p>
+
+We can see that "best results" change reasonably depending on the train-test combination. The second noticeable fact is that SARIMA and PROPHET have performed quite poorly for small training data, as up to Config 6 (84 training months), SARIMA and specially PROPHET perform quite poorly. One of the explanations is that since these models fit, in a macro-sense a trend+seasonal effect, the shock effect of the 2008 crisis have undermined their performance. 
+
+On the other hand, whereas the RF+MAPIE algo did well on crisis periods, SARIMAX (and Prophet) have outperformed the Random Forest model in the last 4 train-test config. This can be associated to a better learning curve compared to the "miopic" stand point from a tree-based model, where seasonality and trend time-based trend can be missed.
+
+If we pick the best model for each period and count the frequency they win we can see that RF+MAPI still outperforms the two models, altough SARIMA does not lag behind much.
+
+```python
+
+heatmap_data.idxmin(axis=1).value_counts()
+
+RF+MAPIE    9
+SARIMA      7
+Prophet     2
+Name: count, dtype: int64
+``` 
+
+
 
 ## Conclusion
 

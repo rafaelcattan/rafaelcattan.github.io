@@ -19,6 +19,56 @@ from mapie.subsample import BlockBootstrap
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 
+def infer_seasonal_period(series):
+    """
+    Infer seasonal period m from pandas Series with DatetimeIndex.
+    Returns integer m (default 12 for monthly data).
+    """
+    if not hasattr(series.index, 'freq') or series.index.freq is None:
+        # Try to infer frequency
+        freq = pd.infer_freq(series.index)
+        if freq is None:
+            # Compute median difference in days
+            diffs = pd.Series(series.index).diff().dropna()
+            if len(diffs) == 0:
+                return 1  # no seasonality
+            median_diff_days = diffs.dt.total_seconds().median() / (24 * 3600)
+            if 27 <= median_diff_days <= 31:
+                return 12  # monthly
+            elif 89 <= median_diff_days <= 92:
+                return 4   # quarterly
+            elif 364 <= median_diff_days <= 366:
+                return 1   # yearly (no seasonal)
+            else:
+                # default to monthly assumption
+                return 12
+        else:
+            # Map common frequencies to seasonal periods per year
+            freq_map = {
+                'M': 12, 'MS': 12, 'ME': 12,
+                'Q': 4, 'QS': 4, 'QE': 4,
+                'W': 52, 'W-SUN': 52, 'W-MON': 52,
+                'D': 365, 'H': 8760, 'T': 525600,
+            }
+            return freq_map.get(freq, 12)
+    else:
+        # Use the freq attribute
+        freq = series.index.freq
+        if freq is None:
+            return 12
+        # Convert freq string to seasonal period
+        freq_str = str(freq)
+        if 'M' in freq_str:
+            return 12
+        elif 'Q' in freq_str:
+            return 4
+        elif 'W' in freq_str:
+            return 52
+        elif 'D' in freq_str:
+            return 365
+        else:
+            return 12
+
 # Load the data (same as notebook)
 def load_data():
     import requests
@@ -60,13 +110,32 @@ results = []
 
 # Define helper functions for each model (same as notebook)
 
-def train_sarima(train_series, test_length):
-    """Train SARIMA on train_series and forecast test_length steps."""
+def train_sarima(train_series, test_length, m=None):
+    """
+    Train SARIMA on train_series and forecast test_length steps.
+    
+    Parameters
+    ----------
+    train_series : pd.Series with DatetimeIndex
+        Training time series.
+    test_length : int
+        Number of steps to forecast.
+    m : int, optional
+        Seasonal period. If None, infer from series frequency.
+    
+    Returns
+    -------
+    pred : pd.Series
+        Forecasted values.
+    """
+    if m is None:
+        m = infer_seasonal_period(train_series)
+    
     # Use auto_arima to find optimal orders (as in notebook)
     auto_model = auto_arima(
         train_series,
         seasonal=True,
-        m=12,
+        m=m,
         stepwise=True,
         trace=False,
         error_action='ignore',
@@ -99,8 +168,14 @@ def train_prophet(train_df, test_dates):
     prophet_train = train_df.reset_index()[['year_month', 'unemployment_rate']]
     prophet_train.columns = ['ds', 'y']
     
+    # Determine if enough data for yearly seasonality (at least 2 years)
+    train_len = len(train_df)
+    yearly_seasonality = 'auto'
+    if train_len < 24:
+        yearly_seasonality = False
+    
     model = Prophet(
-        yearly_seasonality=True,
+        yearly_seasonality=yearly_seasonality,
         weekly_seasonality=False,
         daily_seasonality=False
     )
