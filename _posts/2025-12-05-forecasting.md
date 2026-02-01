@@ -207,11 +207,13 @@ We can see that using standard (continuous-value) error metrics such as MAE and 
 
 But that is not the full story. These results are greatly impacted by three major choices: the length of the training data, the data-point of this training data - that is the date itself - and lastly, the lenght of the test-set, the one we are comparing our estimates against with.
 
-In order to adress this fact I have estimated 19 different models: the first model is trainned in the first year and teste in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot bellow, the first value represents the one-year-17-year train and hold-out set.
+In order to adress this fact I have estimated 19 different models: the first model is trainned in the first year and teste in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot bellow, the first value represents the one-year-17-year train and hold-out set:
 
 <p align="center">
   <img src="/assets/images/forecasting/forecasting_errors_by_train_year.png" alt="" width="800">
 </p>
+
+
 
 We can see that "best results" change reasonably depending on the train-test combination. The second noticeable fact is that SARIMA and PROPHET have performed quite poorly for small training data, as up to Config 6 (84 training months), SARIMA and specially PROPHET perform quite poorly. One of the explanations is that since these models fit, in a macro-sense a trend+seasonal effect, the shock effect of the 2008 crisis have undermined their performance, in combination with a weak learning process of the trend and seasonal components. 
 
