@@ -213,11 +213,12 @@ In order to adress this fact I have estimated 19 different models: the first mod
   <img src="/assets/images/forecasting/forecasting_errors_by_train_year.png" alt="" width="800">
 </p>
 
-We can see that "best results" change reasonably depending on the train-test combination. The second noticeable fact is that SARIMA and PROPHET have performed quite poorly for small training data, as up to Config 6 (84 training months), SARIMA and specially PROPHET perform quite poorly. One of the explanations is that since these models fit, in a macro-sense a trend+seasonal effect, the shock effect of the 2008 crisis have undermined their performance. 
+We can see that "best results" change reasonably depending on the train-test combination. The second noticeable fact is that SARIMA and PROPHET have performed quite poorly for small training data, as up to Config 6 (84 training months), SARIMA and specially PROPHET perform quite poorly. One of the explanations is that since these models fit, in a macro-sense a trend+seasonal effect, the shock effect of the 2008 crisis have undermined their performance, in combination with a weak learning process of the trend and seasonal components. 
 
-On the other hand, whereas the RF+MAPIE algo did well on crisis periods, SARIMAX (and Prophet) have outperformed the Random Forest model in the last 4 train-test config. This can be associated to a better learning curve compared to the "miopic" stand point from a tree-based model, where seasonality and trend time-based trend can be missed.
+On the other hand, whereas the RF+MAPIE algo did well on crisis periods, SARIMAX (and Prophet) have outperformed the Random Forest model in the last 4 train-test config. This can be associated to a better learning curve compared to the "miopic" stand point from a tree-based model. With little extrapolation, SARIMA could find better parameters, interpret better seasonal effects and trend, and with smaller extrapolation, provided the best fit. 
 
 If we pick the best model for each period and count the frequency they win we can see that RF+MAPI still outperforms the two models, altough SARIMA does not lag behind much.
+
 
 ```python
 
@@ -229,6 +230,16 @@ Prophet     2
 Name: count, dtype: int64
 ``` 
 
+This finding is further corroborated visually:
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting_errors_by_train_year_lineplot.png" alt="" width="800">
+</p>
+
+
+Hence, the error patterns reflect each model’s inductive bias under varying train–test horizons. For short training windows and long extrapolation (Configs 1–6), SARIMA and Prophet exhibit high variance and occasional divergence, possibly due to unstable parameter estimation and trend/changepoint mis-specification, leading to large RMSE spikes.
+
+RF+MAPIE remains comparatively stable because Random Forest forecasts are conservative and nonparametric. As the training span increases and the forecast horizon shrinks (Configs 14–18), SARIMA becomes dominant: seasonality and autoregressive dynamics are well identified, and minimal extrapolation is required, yielding very low RMSE. 
 
 
 ## Conclusion
