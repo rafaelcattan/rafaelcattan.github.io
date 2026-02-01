@@ -70,7 +70,7 @@ Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. On
 | Naive Estimator (Past 6 Months Mean) | 1.5 |
 | ARIMA | 1.13 |
 
-It is interesting to note that, since MASE values >1 are considered poor, this confirms that our problem is not an easy one.
+It is interesting to note that, since MASE values >1 represent high-volatility series, this confirms that our problem is not an easy one.
 
 Secondly, it is interesting to observe that the 6-month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
 
@@ -83,7 +83,7 @@ A common time-series diagnosis for such a pattern is to use the Autocorrelation 
 
 We can see that the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time-dependent and the effects of lags greater than 2 are rather small.
 
-So our series is auto-correlated and difficult to estimate, as indicated by different MASE metrics. But how bad can that be? Since this is an exploratory we will accept the challenge.
+So our series is auto-correlated and difficult to estimate, as indicated by different MASE metrics. But how bad can that be? Since this is an exploratory exercise we will accept the challenge!
 
 
 
@@ -130,7 +130,7 @@ Wrapping up what we have seen so far, we can say that our series is time-depende
 
 ### The Methodological Approach
 
-When tackling a macroeconomic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
+When tackling a macroeconomic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions better represent the data generation process of this series?" Having considered the nature of our problem, we will compare three different approaches.
 
 First things first: the **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a go-to method for a preliminary forecast assessment. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, whether they are explained by the series itself or by its seasonality.
 
@@ -138,15 +138,13 @@ The parameterization of our SARIMA model, **$(0,2,1) \times (0,0,1)_{12}$** (fou
 
 $$(1-L)^2 y_t = \epsilon_t + \theta_1 \epsilon_{t-1} + \Theta_1 \epsilon_{t-12} + \theta_1 \Theta_1 \epsilon_{t-13}$$
 
+Where we observe a **Second-Order Differencing $(1-L)^2$**: This term represents the "acceleration" of the series. Mathematically, it expands to $y_t - 2y_{t-1} + y_{t-2}$, which effectively removes stochastic trends of order up to 2 from the original unemployment rate (possibly due to the two observed shocks).
 
-* **Second-Order Differencing $(1-L)^2$**: This term represents the "acceleration" of the series. Mathematically, it expands to $y_t - 2y_{t-1} + y_{t-2}$, which effectively removes non-linear stochastic trends from the unemployment rate.
+Another aspect of the SARIMA model specification is the **Short-Term Error ($\theta_1 \epsilon_{t-1}$)**: This captures the impact of the residual (shock) from the previous month.
 
-* **Short-Term Error ($\theta_1 \epsilon_{t-1}$)**: This captures the impact of the residual (shock) from the previous month.
-
-* **Seasonal Error ($\Theta_1 \epsilon_{t-12}$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: These identify the seasonal residuals from 12 and 13 months ago, allowing the model to correct for annual cycles.
+Finally the model foresees a **Seasonal Error ($\Theta_1 \epsilon_{t-12}$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: These identify the seasonal residuals from 12 and 13 months ago, allowing the model to correct for annual cycles.
 
 So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta$) and yearly seasonal residuals ($\Theta$).
-
 
 In contrast to the regressive nature of SARIMA, **Prophet** views forecasting as a curve-fitting exercise. Its methodology is built on a **Generalized Additive Model (GAM)**. Rather than looking for autocorrelation, it decomposes the signal into distinct structural components. Its functional form is:
 
@@ -191,7 +189,7 @@ First, none of the models could anticipate the unemployment spike during COVID�
 
 Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 crisis. This is explained by their own nature: both assume a given function that depends on either residuals or time-based components: trend and seasonality. This over-reliance on past data structure has caused both to fail to forecast future unemployment rates (let alone the COVID-19 crisis). In the end, the models forecast negative unemployment rates, which are impossible. Even though Prophet can capture regime changes in its trend function, it clearly failed at this task.
 
-The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally, its MAPIE-based[MAPIE](https://mapie.readthedocs.io/en/stable/) confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
+The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally, its [MAPIE](https://mapie.readthedocs.io/en/stable/) confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
 
 The errors clearly illustrate how different the predictions were, on average, from the observed data:
 
@@ -202,7 +200,9 @@ The errors clearly illustrate how different the predictions were, on average, fr
 
 Using standard (continuous-value) metrics, RF outperforms its peers: other models' RMSEs are approximately **2.07–2.80×** RF's (i.e., **107%–180% higher**), so often **more than twice as large**; their MAEs are roughly **1.60–2.21×** RF's (i.e., **60%–121% higher**).
 
-So we can say that RF is better choice for forecasting compared to ARIMA and even PROPHET? The short answer is no. These results are greatly impacted by three major choices: the length of the training data, the data point of this training data - that is the date itself - and lastly, the length of the test-set, the one we are comparing our estimates against.
+With current estimates, we can mislead unemployment rate by roughly 1.9 p.p, which is not great, for this time horizon, on average. If we take the pre-test period's mean and create an interval between mean+-1.9, the observed data would be withing this range 90% of the time. Since 1.9 is greater than the train period's standard deviation, this result is of little value.
+
+Regarding the model's comparison, however, can say that RF is better choice for forecasting compared to ARIMA and even PROPHET? The short answer is no. These results are greatly impacted by three major choices: the length of the training data, the data point of this training data - that is the date itself - and lastly, the length of the test-set, the one we are comparing our estimates against.
 
 In order to address this fact I have estimated 19 different models: the first model is trained in the first year and tested in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot below, "Config 1" represents the one-year training and 17-year hold-out set:
 
@@ -211,7 +211,7 @@ In order to address this fact I have estimated 19 different models: the first mo
 </p>
 
 
-First, the best-performing model depends strongly on the train–test split. SARIMA and Prophet perform poorly with small training sets: up to Config 6 (84 training months) they often diverge substantially from the observed series. This likely reflects that these models explicitly fit trend + seasonality, so the 2008 shock impaired parameter estimates and slowed learning of trend and seasonal components.
+We can see that the best-performing model depends strongly on the train–test split. SARIMA and Prophet perform poorly with small training sets: up to Config 6 (84 training months) they often diverge substantially from the observed series. This likely reflects that these models explicitly fit trend + seasonality, so the 2008 shock impaired parameter estimates, resulting on strong bias.
 
 Although I expected another error spike after the strong COVID shock between Configs 15 and 16, the errors instead show a steady decline — likely because that shock was shorter and was combined to a much smaller extrapolation horizon. This finding is corroborated visually:
 
@@ -222,6 +222,7 @@ Although I expected another error spike after the strong COVID shock between Con
 While RF+MAPIE performs well during crisis periods, SARIMAX (and Prophet) outperform Random Forest in the last four train–test configurations, reflecting a better learning curve when extrapolation is limited. Counting wins by configuration confirms RF+MAPIE wins most often (RF+MAPIE: 9, SARIMA: 7, Prophet: 2).
 
 Overall, the error patterns reflect each model’s inductive bias under varying train–test horizons: for short training windows and long extrapolations (Configs 1–6), SARIMA and Prophet show high variance and occasional divergence; as the training span increases and forecast horizons shrink (Configs 14–18), SARIMA becomes competitive and often yields the lowest RMSE.
+
 
 
 ## Conclusion
