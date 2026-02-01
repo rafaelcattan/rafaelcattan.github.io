@@ -1,0 +1,249 @@
+---
+title: "US Unemployment Forecasting: a use-case"
+date: 2025-12-05
+classes: wide  
+layout: single
+share: false
+related: false
+usemathjax: true    
+---
+
+In this post I'll explore a time-series forecasting problem. This is not only a classic data-science problem, but also an economic one. Whereas in the first, companies are interested in forecasting sales, conversions, net revenue, or any other relevant KPI, in economics it is often related to macroeconomic series.
+
+Since it is easier to access public API-based macroeconomic datasets, I'll focus on the economic problem.
+
+In this post I'll address the following question: can we forecast the US unemployment rate?
+
+More than simply trying to find the best performance metric, this post will explore some of the nuances behind time-series forecasting. For instance, how "shocks" affect your prediction? How do pre-defined forecasting functions perform against model-agnostic models? How to measure predictability?
+
+
+
+
+## Some Context
+
+First things first, let's dive into the data. I'm using the US monthly unemployment rate from 2014-12-16 to 2024-12-01 (that's all I've got in the free version of the [Bureau of Labor Statistics](https://api.bls.gov)), resulting in only 240 observations.
+
+Before any methodological overview, let's have a quick look at the time series under analysis:
+
+<p align="center">
+  <img src="/assets/images/forecasting/us_unemployment_with_ci.png" alt="Forecast Results" width="800">
+</p>
+
+Besides the time series itself, I have added its confidence interval, a rolling 12-month average (more useful for high-volatility series), and two distinct periods that deserve some attention: the 2008 financial crash and the 2020 COVID-19 pandemic.
+
+Since these events are not endogenous economic events, there is a good chance that our model will fail badly in those periods.
+
+Despite these shocks, 80% of the observations fall between a 3.4-7.7% range, with a 5.8% mean and a standard deviation of 2.12, meaning that under "normal periods" the series is relatively stable.
+
+Another interesting observation is how unemployment behaved differently across the two periods. First, the 2008 financial crisis took longer to reach its maximum level and longer to converge back to the period average. The COVID-19 shock, on the other hand, halved employment extremely fast, but was also faster to converge. We can better illustrate this with the following plot:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/crisis_comparison.png" alt="" width="800">
+</p>
+
+
+We can see the GFC takes an impressive 82 months from its assumed beginning (2007-12-01) until it converges to the period mean (2014-09-01). This means a 9-year sluggish recovery. The COVID-19 pandemic, in turn, takes approximately 15 months from its beginning in February 2020 to converge to the period mean again in May 2021, despite hitting a much higher unemployment level of nearly 15%.
+
+In terms of forecastability, thus, the period shows a double challenge, not only two massive shocks but also two very distinct patterns. Having contextualized the unemployment rate during the period of data availability, we should ask ourselves: **is the US unemployment rate between (2014/12 - 2024/12) predictable?**
+
+
+## Measuring Predictability
+
+One of the most standard ways to measure the predictability of a time-series is through the Coefficient of Variation (CoV). The idea is simple: compare the series' standard deviation to its mean: $$CoV = \frac{\sigma}{\mu}$$. A value smaller than 0.5 indicates relative smoothness; $0.5<CoV<1$ indicates instability; and $CoV>1$ indicates high instability.
+
+For our series, this ratio is about 0.36. This metric, however, is quite poor since it does not capture any time-dependence of the series. That is, the data distribution is simply considered as independent, with no attention to time-dependent dimensions, such as seasonality, trend, or even order itself. A simple look at the series can give us an idea of how $CoV$ can be misleading.
+
+A hands-on approach that considers time-specific structure is the Mean Absolute Scaled Error, formally defined as:
+
+$$
+\text{MASE} =
+\frac{\frac{1}{n}\sum_{t=1}^{n} \lvert y_t - \hat{y}_t \rvert}
+{\frac{1}{n-1}\sum_{t=2}^{n} \lvert y_t - y_{t-1} \rvert}
+$$
+
+Simply put, this method highlights *how much better my model is compared to the last observed value.*
+
+Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. One approach is to use a naive basis, such as the mean value of the series, the mean of the n past values, or a simple univariate estimate, like ARIMA. For our problem, I estimated these values and found:
+
+| Model | MASE |
+|:-------|:------:|
+| Naive Estimator (Overall Mean) | 8.8 |
+| Naive Estimator (Past 6 Months Mean) | 1.5 |
+| ARIMA | 1.13 |
+
+It is interesting to note that, since MASE values >1 are considered poor, this confirms that our problem is not an easy one.
+
+Secondly, it is interesting to observe that the 6-month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
+
+A common time-series diagnosis for such a pattern is to use the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF). They measure the effect of $y_{t-k}$ on $y_t$. The first disregards the intermediate effects of $y_{t-k-1}$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/pacf_pac.png" alt="" width="800">
+</p>
+
+We can see that the ACF decreases exponentially, whereas the PACF has a cut-off after the second lag. This indicates an AR(2) process: the series is time-dependent and the effects of lags greater than 2 are rather small.
+
+So our series is auto-correlated and difficult to estimate, as indicated by different MASE metrics.
+
+
+## Predicting
+
+
+Before picking a standard method and running .fit(), let's first better understand the problem. A common starting point is to decompose the time series into trend, seasonality, and residuals. The [statsmodel](https://www.statsmodels.org/stable/index.html) library provides a built-in method for this called "seasonal_decompose" which fits a simple model $Y_t = T_t + S_t + e_t$. All three elements can be seen below:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/seasonal_decomposition.png" alt="" width="800">
+</p>
+
+As previously observed, the trend itself is quite erratic, but due to two very significant shocks. The seasonality has been well captured. Intuitively, I calculated the time between peaks of the seasonal component exceeding the ninth decile ($q=.9$), which indicated a yearly seasonality:
+
+```python
+# Get seasonal component values with absolute value > 90th percentile
+high_seasonal = decomposition.seasonal[abs(decomposition.seasonal) > decomposition.seasonal.abs().quantile(0.9)]    
+
+# Calculate time differences between these dates
+time_diffs = high_seasonal.index.to_series().diff() 
+time_diffs.mean()
+
+Timedelta('365 days 06:18:56.842105264')
+
+``` 
+
+Which has been further corroborated by a standard Fast Fourier Transform:
+
+
+```python
+from scipy.fft import rfft, rfftfreq
+
+yf = rfft(decomposition.seasonal.values - decomposition.seasonal.values.mean())
+xf = rfftfreq(len(df), d=1) 
+
+# Finding highest power
+idx = np.argmax(np.abs(yf))
+dominant_period = 1 / xf[idx]
+12.0
+``` 
+
+Wrapping up what we have seen so far, we can say that our series is time-dependent, non-stationary (from the exponential decay of the PACF plot), has a yearly seasonality, and suffered two strong but distinct shocks during the period of analysis. With that in mind, we'll explore three different approaches.
+
+## Fitting
+
+
+### The Methodological Approach
+When tackling a macroeconomic indicator like the US unemployment rate (2005–2025), choosing a model is less about "which is better" and more about "which mathematical assumptions do we trust?" Having considered the nature of our problem, we will compare three different approaches.
+
+First things first: the **SARIMA** (Seasonal AutoRegressive Integrated Moving Average) model. This method treats the time series as a linear stochastic process and is a go-to method for a preliminary assessment of predictability. Methodologically, it relies on the assumption that the future is a linear combination of past observations and past errors, whether they are explained by the series itself or by its seasonality.
+
+The parameterization of our SARIMA model, **$(0,2,1) \times (0,0,1)_{12}$** (via the AIC criterion), corresponds to an expansion of the lag operator. The equation we are fitting to the US unemployment data is summarized as:
+
+$$(1-L)^2 y_t = \epsilon_t + \theta_1 \epsilon_{t-1} + \Theta_1 \epsilon_{t-12} + \theta_1 \Theta_1 \epsilon_{t-13}$$
+
+
+* **Second-Order Differencing $(1-L)^2$**: This term represents the "acceleration" of the series. Mathematically, it expands to $y_t - 2y_{t-1} + y_{t-2}$, which effectively removes non-linear stochastic trends from the unemployment rate.
+
+* **Short-Term Error ($\theta_1 \epsilon_{t-1}$)**: This captures the impact of the residual (shock) from the previous month.
+
+* **Seasonal Error ($\Theta_1 \epsilon_{t-12}$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: These identify the seasonal residuals from 12 and 13 months ago, allowing the model to correct for annual cycles.
+
+So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta$) and yearly seasonal residuals ($\Theta$).
+
+
+In contrast to the regressive nature of SARIMA, **Prophet** views forecasting as a curve-fitting exercise. Its methodology is built on a **Generalized Additive Model (GAM)**. Rather than looking for autocorrelation, it decomposes the signal into distinct structural components. Its functional form is:
+
+$$y(t) = g(t) + s(t) + h(t) + \epsilon_t$$
+
+
+While the components are **summed** together (making it additive), the individual components are nonlinear: the trend can be fitted as a logistic growth curve or a growth rate adjusted at given changepoints. The seasonality is a **Fourier Series**, which by definition is not linear.
+
+This strategy allows it to handle irregular spacing and structural breaks—like economic crises—with ease, but the model still relies on a given functional form. That is, the algorithm's effort is to find the best parameters that match that specific functional form.
+
+Our third model specification, on the other hand, starts from a different problem: given the data, which functional form fits best?
+
+The **RandomForestRegressor** shifts the paradigm from temporal sequences to a supervised learning problem. Since decision trees are inherently "time-agnostic," the methodology requires manual feature engineering to create a lag-matrix ($y_{t-1}, y_{t-2}, \dots$). Thus, it excels at capturing nonlinear interactions between lags—something SARIMA cannot do—but it lacks an internal mechanism to handle trends (extrapolation). Its functional form is an average of $B$ individual tree predictions:
+
+$$\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)$$
+
+Where:
+* $T_b(x)$ is the output of a single decision tree grown on a bootstrap sample.
+* $x$ is the input vector of lagged features.
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+# Example: Converting the series to a supervised problem
+# target = y_t, features = [y_{t-1}, y_{t-2}, y_{t-3}]
+model_rf = RandomForestRegressor(n_estimators=100, max_depth=10)
+model_rf.fit(X_train_lags, y_train)
+```
+
+### The Estimates
+
+For simplicity, the first approach was to train our model on half the time period (2005-01-01 to 2014-12-01) and estimate on a hold-out set (the next 120 periods).
+
+I constructed confidence intervals for all of them and compared them on a single plot:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting.png" alt="" width="800">
+</p>
+
+Two things deserve attention. First, none of the models could foresee the unemployment rate during COVID-19, which should be obvious, since there is no previous pattern to replicate. There are no past values even close to that change, and there is no seasonality in pandemics (I would guess).
+
+Second, both SARIMA and Prophet overfitted the decreasing trend from the 2008 crisis. This is explained by their own nature: both assume a given function that depends on either residuals or time-based components: trend and seasonality. This over-reliance on past data structure has caused both to fail to forecast future unemployment rates (let alone the COVID-19 crisis). In the end, the models forecast negative unemployment rates, which are impossible. Even though Prophet can capture regime changes in its trend function, it clearly failed at this task.
+
+The *Random Forest* forecast (purple dotted line) is the only model that remained "realistic," hovering around the historical mean. Because trees cannot extrapolate beyond the range of the training data, the RF model produced a horizontal, oscillatory forecast. Additionally, its MAPIE-based confidence interval is much tighter and more realistic than the massive SARIMA confidence interval (red), which exploded because the model became increasingly "unsure" as it drifted further from the training mean.
+
+The errors clearly illustrate how different the predictions were, on average, from the observed data:
+
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting_errors.png" alt="" width="800">
+</p>
+
+We can see that using standard (continuous-value) error metrics such as MAE and RMSE, the RF model outperforms its peers, with error differences ranging from 107% to 180% for RMSE and from 60% to 121% for MAE.
+
+But that is not the full story. These results are greatly impacted by three major choices: the length of the training data, the data point of this training data - that is the date itself - and lastly, the length of the test-set, the one we are comparing our estimates against.
+
+In order to address this fact I have estimated 19 different models: the first model is trained in the first year and tested in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot below, the first value represents the one-year training and 17-year hold-out set:
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting_errors_by_train_year.png" alt="" width="800">
+</p>
+
+
+
+We can see that "best results" change substantially depending on the train-test combination. The second noticeable fact is that SARIMA and PROPHET perform quite poorly with small training data, as up to Config 6 (84 training months), SARIMA and especially PROPHET perform quite poorly. One of the explanations is that since these models fit, in a macro-sense a trend+seasonal effect, the shock effect of the 2008 crisis undermined their performance, combined with a weak learning process of the trend and seasonal components. 
+
+On the other hand, whereas the RF+MAPIE algorithm did well on crisis periods, SARIMAX (and Prophet) have outperformed the Random Forest model in the last 4 train-test configurations. This can be associated with a better learning curve compared to the "myopic" standpoint of a tree-based model. With little extrapolation, SARIMA could find better parameters, better interpret seasonal effects and trends, and with less extrapolation, provided the best fit. 
+
+If we pick the best model for each period and count the frequency with which they win we can see that RF+MAPIE still outperforms the two models, although SARIMA does not lag behind much.
+
+
+```python
+
+heatmap_data.idxmin(axis=1).value_counts()
+
+RF+MAPIE    9
+SARIMA      7
+Prophet     2
+Name: count, dtype: int64
+``` 
+
+This finding is further corroborated visually:
+
+<p align="center">
+  <img src="/assets/images/forecasting/forecasting_errors_by_train_year_lineplot.png" alt="" width="800">
+</p>
+
+
+Hence, the error patterns reflect each model’s inductive bias under varying train–test horizons. For short training windows and long extrapolation (Configs 1–6), SARIMA and Prophet exhibit high variance and occasional divergence, possibly due to unstable parameter estimation and trend/changepoint mis-specification, leading to large RMSE spikes.
+
+RF+MAPIE remains comparatively stable because Random Forest forecasts are conservative and nonparametric. As the training span increases and the forecast horizon shrinks (Configs 14–18), SARIMA becomes dominant: seasonality and autoregressive dynamics are well identified, and minimal extrapolation is required, yielding very low RMSE. 
+
+
+## Conclusion
+
+Adding MAPIE (conformal prediction) to Random Forest provided an additional edge: empirically calibrated uncertainty quantification. Rather than assuming error distributions, MAPIE learns from actual historical prediction errors, providing realistic prediction intervals that widen appropriately over the forecast horizon.
