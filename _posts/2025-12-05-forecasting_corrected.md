@@ -70,9 +70,9 @@ Since $y_t$ and $y_{t-1}$ are given, what we need to estimate is $\hat{y}_t$. On
 | Naive Estimator (Past 6 Months Mean) | 1.5 |
 | ARIMA | 1.13 |
 
-It is interesting to note that, since MASE values >1 represent high-volatility series, this confirms that our problem is not an easy one.
+It is interesting to note that, since MASE values >1 represent high-volatility series, this confirms not only that CV can mislead you but that our problem is not an easy one.
 
-Secondly, it is interesting to observe that the 6-month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values.
+Secondly, it is interesting to observe that the 6-month mean performed much better than the overall mean. This suggests that our series is time-dependent, meaning that past values influence future values. Since this is key for a good model proposition, we need to understand this dependence on time.
 
 A common time-series diagnosis for such a pattern is to use the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF). They measure the effect of $y_{t-k}$ on $y_t$. The first disregards the intermediate effects of $y_{t-k-1}$ events, whereas the second controls for each individual time effect between past and current events, as shown below:
 
@@ -96,7 +96,7 @@ Before picking a standard method and running .fit(), let's first better understa
   <img src="/assets/images/forecasting/seasonal_decomposition.png" alt="" width="800">
 </p>
 
-As previously observed, the trend itself is quite erratic, but due to two very significant shocks. The seasonality has been well captured. Intuitively, I calculated the time between peaks of the seasonal component exceeding the ninth decile ($q=.9$), which indicated a yearly seasonality:
+As previously observed, the trend itself is quite erratic, but due to two very significant shocks. The seasonality has been well captured. Intuitively, I calculated the time between peaks of the seasonal component (using the ninth decile $q=.9$ threshold), which indicated a yearly seasonality:
 
 ```python
 # Get seasonal component values with absolute value > 90th percentile
@@ -144,7 +144,7 @@ Another aspect of the SARIMA model specification is the **Short-Term Error ($\th
 
 Finally the model foresees a **Seasonal Error ($\Theta_1 \epsilon_{t-12}$)** and ($\theta_1 \Theta_1 \epsilon_{t-13}$)**: These identify the seasonal residuals from 12 and 13 months ago, allowing the model to correct for annual cycles.
 
-So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta$) and yearly seasonal residuals ($\Theta$).
+So, in this framework, the current "accelerated" change in unemployment is explained not by past values themselves, but by a combination of recent shocks ($\theta_1$) and yearly seasonal residuals ($\Theta_1$,$\Theta_2$ ).
 
 In contrast to the regressive nature of SARIMA, **Prophet** views forecasting as a curve-fitting exercise. Its methodology is built on a **Generalized Additive Model (GAM)**. Rather than looking for autocorrelation, it decomposes the signal into distinct structural components. Its functional form is:
 
@@ -202,7 +202,7 @@ Using standard (continuous-value) metrics, RF outperforms its peers: other model
 
 With current estimates, we can mislead unemployment rate by roughly 1.9 p.p, which is not great, for this time horizon, on average. If we take the pre-test period's mean and create an interval between mean+-1.9, the observed data would be withing this range 90% of the time. Since 1.9 is greater than the train period's standard deviation, this result is of little value.
 
-Regarding the model's comparison, however, can say that RF is better choice for forecasting compared to ARIMA and even PROPHET? The short answer is no. These results are greatly impacted by three major choices: the length of the training data, the data point of this training data - that is the date itself - and lastly, the length of the test-set, the one we are comparing our estimates against.
+Regarding the model's comparison, however, can we say that Random Forest is the clear winner for forecasting US unemployment? The short answer is no. These results are heavily shaped by three key decisions: how much historical data we use for training, *when* that training period starts, and how far ahead we're trying to forecast.
 
 In order to address this fact I have estimated 19 different models: the first model is trained in the first year and tested in the following 18, the second model was trained in the first two years, and tested in the following 17, and so on. In the plot below, "Config 1" represents the one-year training and 17-year hold-out set:
 
@@ -232,6 +232,6 @@ This post used the monthly US unemployment rate (2014–2024) as a practical for
 Key findings and diagnostics:
 
 - Predictability is limited: CoV ≈ 0.36 and MASE diagnostics indicate the task is difficult (Naive overall mean MASE ≈ 8.8; 6‑month mean ≈ 1.5; ARIMA ≈ 1.13). MASE values above 1 highlight that simple baselines are often hard to beat.  
-- Error magnitudes depend on the context: compared to RF, other models' RMSEs were roughly **2.07–2.80×** RF's (i.e., **107%–180% higher**) and their MAEs **1.60–2.21×** RF's (i.e., **60%–121% higher**). These differences reflect a trade‑off: RF+MAPIE produced conservative, plausible forecasts and tighter empirically calibrated intervals in crisis scenarios, while SARIMA/Prophet sometimes captured trend changes better with ample data but were more sensitive to shocks and extrapolation.
+- Error magnitudes depend on the context: compared to RF, other models' RMSEs were roughly **107%–180% higher** and their MAEs **60%–121% higher**. These differences reflect a trade‑off: RF+MAPIE produced conservative, plausible forecasts and tighter empirically calibrated intervals in crisis scenarios, while SARIMA/Prophet sometimes captured trend changes better with ample data but were more sensitive to shocks and extrapolation.
 
 Finally, always put into perspective your problem. Is your series random? Are there structural breaks? How relevant are exogenous events explaining your data generation process? All of these questions should be asked to calibrate you error expectations. Treat you problem as unique and explore its shape before running .fit() and you will likely have a better understaing of your prediction power.
